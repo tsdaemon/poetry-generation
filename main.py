@@ -11,6 +11,8 @@ from utils.general import init_logging
 from model.chargen import CharGen
 from config import parser
 from trainer import Trainer
+from model.utils import device_map_location
+from containers.vocab import get_char_vocab
 
 
 if __name__ == '__main__':
@@ -20,7 +22,6 @@ if __name__ == '__main__':
     args.cuda = args.cuda and torch.cuda.is_available()
 
     # random seed
-    np.random.seed(args.random_seed)
     torch.manual_seed(args.random_seed)
     random.seed(args.random_seed)
     if args.cuda:
@@ -38,20 +39,11 @@ if __name__ == '__main__':
     logging.info('loading dataset [%s]', args.dataset)
 
     # load data
-    load_dataset = None
-    if args.dataset == 'hs':
-        from datasets.hs import load_dataset
-    elif args.dataset == 'django':
-        from datasets.django import load_dataset
-    else:
-        raise Exception('Dataset {} is not prepared yet'.format(args.dataset))
-    train_data, dev_data, test_data = load_dataset(args)
-
-    # configure more variables
-    args.source_vocab_size = train_data.vocab.size()
-    args.target_vocab_size = train_data.terminal_vocab.size()
-    args.rule_num = len(train_data.grammar.rules)
-    args.node_num = len(train_data.grammar.node_type_to_id)
+    data_dir = args.data_dir
+    dataset = args.data_dir
+    train_data, dev_data = [torch.load(os.path.join(data_dir, dataset + '.' + t))
+                            for t in ['train', 'validation']]
+    vocab = get_char_vocab(os.path.join(data_dir, dataset + '.vocab'))
 
     # load model
     if args.model:
@@ -60,9 +52,7 @@ if __name__ == '__main__':
         model = torch.load(args.model, device_map_location(args.cuda))
     else:
         logging.info('Creating new model'.format(args.model))
-        emb_file = os.path.join(args.data_dir, 'word_embeddings.pth')
-        emb = torch.load(emb_file)
-        model = Tree2TreeModel(args, emb, train_data.terminal_vocab, train_data.grammar)
+        model = CharGen(args, len(vocab))
         if args.cuda:
             model = model.cuda()
 
@@ -70,15 +60,4 @@ if __name__ == '__main__':
     optimizer = optim.Adam([p for p in model.parameters() if p.requires_grad], lr=args.lr)
     trainer = Trainer(model, args, optimizer)
 
-    if args.mode == 'train':
-        trainer.train_all(train_data, dev_data, test_data, args.output_dir)
-    elif args.mode == 'validate':
-        tmp_epoch_dir = os.path.join(args.output_dir, 'tmp')
-        if os.path.exists(tmp_epoch_dir):
-            shutil.rmtree(tmp_epoch_dir)
-        os.mkdir(tmp_epoch_dir)
-        trainer.validate(test_data, 0, tmp_epoch_dir)
-    elif args.mode == 'start_batch':
-        trainer.train(train_data, 0, st_batch=59)
-    else:
-        raise Exception("Unknown mode!")
+    trainer.train_all(train_data, dev_data, args.output_dir)
