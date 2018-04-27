@@ -1,5 +1,4 @@
 torch
-BeautifulSoup4
 tqdm
 pytest
 tokenize_uk
