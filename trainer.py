@@ -107,8 +107,7 @@ class Trainer(object):
                              total=total_batches):
             X, y = dataset.get_batch(batch)
 
-            X, y = Var(X.unsqueeze(0), requires_grad=False), Var(y.unsqueeze(0),
-                                                                 requires_grad=False)
+            X, y = Var(X, requires_grad=False), Var(y, requires_grad=False)
             loss = self.model.forward_train(X, y)
             total_loss += loss.data[0]
             logging.debug('Validation batch {}, loss {}'.format(i, loss[0]))

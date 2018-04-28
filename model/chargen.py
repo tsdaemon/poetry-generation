@@ -14,7 +14,7 @@ class CharGen(nn.Module):
         super().__init__()
 
         self.embed = nn.Embedding(vocab_length, config.char_embed_dim, padding_idx=Constants.PAD)
-        init.normal(self.embed.weight, 0.0, 0.2)
+        init.normal_(self.embed.weight, 0.0, 0.2)
         self.embed.weight.requires_grad = not config.freeze_embeds
 
         self.lstm = LSTM(in_dim=config.char_embed_dim, out_dim=config.hidden_dim, p_dropout=config.dropout)
@@ -24,6 +24,7 @@ class CharGen(nn.Module):
         self.is_cuda = config.cuda
 
     def forward(self, X):  # X: (1)
+        # convert from usual vector
         X = Var(from_list(X, self.is_cuda, torch.LongTensor), requires_grad=False)
         # (1,  1, char_embed_dim)
         X = self.embed(X).unsqueeze(0)
@@ -35,7 +36,13 @@ class CharGen(nn.Module):
         h = h.squeeze(0).squeeze(0)
 
         # (vocab_length)
-        return self.logsoftmax_dense(h)
+        dist = self.logsoftmax_dense(h)
+
+        # convert back to numpy
+        if self.is_cuda:
+            dist = dist.cpu()
+
+        return dist.data.numpy()
 
     def forward_train(self, X, y):
         # (batch_num, max_poem_length, char_embed_dim)

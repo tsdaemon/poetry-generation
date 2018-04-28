@@ -16,28 +16,28 @@ class LSTM(nn.Module):
         self.dropout = p_dropout
 
         self.W_i = nn.Linear(in_dim, out_dim)
-        init.xavier_uniform(self.W_i.weight)
+        init.xavier_uniform_(self.W_i.weight)
         self.W_i.bias = nn.Parameter(torch.FloatTensor(out_dim).zero_())
         self.U_i = nn.Linear(out_dim, out_dim, bias=False)
-        init.orthogonal(self.U_i.weight)
+        init.orthogonal_(self.U_i.weight)
 
         self.W_f = nn.Linear(in_dim, out_dim)
-        init.xavier_uniform(self.W_f.weight)
+        init.xavier_uniform_(self.W_f.weight)
         self.W_f.bias = nn.Parameter(torch.FloatTensor(out_dim).fill_(1.0))
         self.U_f = nn.Linear(out_dim, out_dim)
-        init.orthogonal(self.U_f.weight)
+        init.orthogonal_(self.U_f.weight)
 
         self.W_c = nn.Linear(in_dim, out_dim)
-        init.xavier_uniform(self.W_c.weight)
+        init.xavier_uniform_(self.W_c.weight)
         self.W_c.bias = nn.Parameter(torch.FloatTensor(out_dim).fill_(0.0))
         self.U_c = nn.Linear(out_dim, out_dim)
-        init.orthogonal(self.U_c.weight)
+        init.orthogonal_(self.U_c.weight)
 
         self.W_o = nn.Linear(in_dim, out_dim)
-        init.xavier_uniform(self.W_o.weight)
+        init.xavier_uniform_(self.W_o.weight)
         self.W_o.bias = nn.Parameter(torch.FloatTensor(out_dim).fill_(0.0))
         self.U_o = nn.Linear(out_dim, out_dim)
-        init.orthogonal(self.U_o.weight)
+        init.orthogonal_(self.U_o.weight)
 
     def forward_node(self, xi, xf, xo, xc, h_prev, c_prev, dr_H):
         i = F.sigmoid(xi + self.U_i(h_prev * dr_H[0]))

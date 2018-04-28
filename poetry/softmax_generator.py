@@ -1,5 +1,4 @@
-import torch
-from torch.autograd import Variable as Var
+import numpy as np
 from numpy.random import RandomState
 
 
@@ -19,7 +18,7 @@ class SoftmaxGenerator:
             distribution = self.model(curr_input)
 
             # transfrom to cumulative distribution and move to numpy array
-            cum_distribution = distribution.cumsum(0).data.numpy()
+            cum_distribution = np.cumsum(distribution)
             rnd_number = rng.uniform(0, 1.0)
             for i, cum_proba in enumerate(cum_distribution):
                 if rnd_number < cum_proba:
