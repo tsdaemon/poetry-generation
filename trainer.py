@@ -8,14 +8,17 @@ import shutil
 
 from utils.general import get_batches
 from utils.io import send_telegram
+import Constants
+from torch.autograd import Variable as Var
 
 
 class Trainer(object):
-    def __init__(self, model, config, optimizer, generator):
+    def __init__(self, model, config, optimizer, generator, vocab):
         self.config = config
         self.model = model
         self.optimizer = optimizer
         self.generator = generator
+        self.vocab = vocab
 
     def train_all(self, train_data, dev_data, results_dir):
         max_epoch = self.config.max_epoch
@@ -37,17 +40,17 @@ class Trainer(object):
             logging.info('Saving model at {}.'.format(model_path))
             torch.save(self.model, model_path)
 
-            validation_logloss = self.validate(dev_data, epoch, epoch_dir)
-            logging.info('Epoch {} validation finished, bleu: {}, accuracy: {}, errors: {}.'.format(
+            validation_logloss = self.validate(dev_data, epoch)
+            logging.info('Epoch {} validation finished, logloss: {}.'.format(
                 epoch + 1, validation_logloss))
-
             val_logloss_perf.append(validation_logloss)
+
+            self.generate(epoch, epoch_dir)
 
             if validation_logloss < 10:
                 if len(val_logloss_perf) == 0 or validation_logloss > np.array(val_logloss_perf).max():
                     patience_counter = 0
                     logging.info('Found best model on epoch {}'.format(epoch+1))
-                    best_model_file = model_path
                 else:
                     patience_counter += 1
                     logging.info('Hitting patience_counter: {}'.format(patience_counter))
@@ -73,11 +76,13 @@ class Trainer(object):
         total_batches = math.floor(len(indices)/batch_size)+1
         batches = list(get_batches(indices, batch_size))
 
-        for i, batch in tqdm(enumerate(batches), desc='Training epoch '+str(epoch+1)+'', total=total_batches):
+        for i, batch in tqdm(enumerate(batches), desc='Training epoch '+str(epoch+1)+'',
+                             total=total_batches):
             X, y = dataset.get_batch(batch)
 
+            X, y = Var(X, requires_grad=False), Var(y, requires_grad=False)
+
             loss = self.model.forward_train(X, y)
-            assert loss > 0, "NLL can not be less than zero"
 
             total_loss += loss.data[0]
             loss.backward()
@@ -87,22 +92,41 @@ class Trainer(object):
 
         return total_loss/len(dataset)
 
-    def validate(self, dataset, epoch, out_dir):
+    def validate(self, dataset, epoch):
         self.model.eval()
         total_loss = 0.0
 
-        for idx in tqdm(range(len(dataset)), desc='Testing epoch '+str(epoch+1)+''):
-            X, y = dataset[idx]
+        batch_size = self.config.batch_size
+        indices = torch.randperm(len(dataset))
+        if self.config.cuda:
+            indices = indices.cuda()
+        total_batches = math.floor(len(indices) / batch_size) + 1
+        batches = list(get_batches(indices, batch_size))
 
+        for i, batch in tqdm(enumerate(batches), desc='Testing epoch ' + str(epoch + 1) + '',
+                             total=total_batches):
+            X, y = dataset.get_batch(batch)
+
+            X, y = Var(X.unsqueeze(0), requires_grad=False), Var(y.unsqueeze(0),
+                                                                 requires_grad=False)
             loss = self.model.forward_train(X, y)
             total_loss += loss.data[0]
-            logging.debug('Validation idx {}, loss {}'.format(idx, loss[0]))
+            logging.debug('Validation batch {}, loss {}'.format(i, loss[0]))
 
         total_loss /= len(dataset)
 
         return total_loss
 
+    def generate(self, epoch, out_dir):
+        # generate test words
+        generate_file_name = os.path.join(out_dir, 'generated.txt')
+        with open(generate_file_name, 'w') as f:
+            for i in tqdm(range(10), desc='Generating for epoch {}'.format(epoch+1)):
+                vector = self.generator.generate(random_seed=i)
+                poem = Constants.postprocess_poem(''.join(self.vocab.convert_to_labels(vector)))
+                f.write(poem + "\n\n")
+
     def report_bot(self, report_dict):
         msg = "Finished experiment with config {}.\n\n".format(self.config)
         msg += "\n".join(["{}: {}.".format(k, v) for k, v in report_dict.items()])
-        send_telegram(msg)
+        # send_telegram(msg)

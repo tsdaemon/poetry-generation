@@ -10,7 +10,6 @@ from containers.dataset import Dataset
 import Constants
 
 
-
 def extract_poems(contents):
     return contents.split('\n\n\n')
 
@@ -36,8 +35,9 @@ def extract_char_vocab(contents, vocabfile, min_freq):
 def generate_out(out_filename, poems, vocab, max_poem_length):
     with open(out_filename, 'w') as f:
         for poem in poems:
-            poem = poem.replace('\n', Constants.EOL_CHAR) + Constants.EOP_CHAR + ''.join([Constants.PAD_CHAR]*(max_poem_length-len(poem)-1))
-            assert len(poem) == max_poem_length
+            poem = Constants.preprocess_poem(poem, max_poem_length)
+            # vectors will be truncated, so we store 500+1 index
+            assert len(poem) == max_poem_length+1
             idx = vocab.convert_to_idx(poem, Constants.UNK_CHAR)
             s = ' '.join(map(str, idx)) + '\n'
             f.write(s)
@@ -94,6 +94,6 @@ if __name__ == '__main__':
     for poems, out_filename, dataset_filename in to_generate:
         out_filename = os.path.join(poetry_folder, out_filename)
         generate_out(out_filename, poems, vocab, args.max_poem_length)
-        dataset = Dataset(out_filename, vocab)
+        dataset = Dataset(out_filename)
         dataset_filename = os.path.join(poetry_folder, dataset_filename)
         torch.save(dataset, dataset_filename)

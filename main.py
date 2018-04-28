@@ -1,19 +1,19 @@
-import os
-import numpy as np
 import logging
+import os
+import random
 import sys
+
 import torch
 import torch.optim as optim
-import random
-import shutil
 
-from utils.general import init_logging
-from model.chargen import CharGen
 from config import parser
-from trainer import Trainer
-from model.utils import device_map_location
 from containers.vocab import get_char_vocab
-
+from model.chargen import CharGen
+from model.utils import device_map_location
+from trainer import Trainer
+from utils.general import init_logging
+from poetry.softmax_generator import SoftmaxGenerator
+import Constants
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -40,9 +40,11 @@ if __name__ == '__main__':
 
     # load data
     data_dir = args.data_dir
-    dataset = args.data_dir
+    dataset = args.dataset
     train_data, dev_data = [torch.load(os.path.join(data_dir, dataset + '.' + t))
                             for t in ['train', 'validation']]
+    train_data.prepare_device(args.cuda)
+    dev_data.prepare_device(args.cuda)
     vocab = get_char_vocab(os.path.join(data_dir, dataset + '.vocab'))
 
     # load model
@@ -58,6 +60,7 @@ if __name__ == '__main__':
 
     # create learner
     optimizer = optim.Adam([p for p in model.parameters() if p.requires_grad], lr=args.lr)
-    trainer = Trainer(model, args, optimizer)
+    generator = SoftmaxGenerator(model, Constants.SOP, Constants.EOP)
+    trainer = Trainer(model, args, optimizer, generator, vocab)
 
     trainer.train_all(train_data, dev_data, args.output_dir)

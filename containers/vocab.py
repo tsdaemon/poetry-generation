@@ -70,18 +70,20 @@ class Vocab(object):
         return vec
 
     # Convert `idx` to labels. If index `stop` is reached, convert it and return.
-    def convert_to_labels(self, idx, stop):
+    def convert_to_labels(self, idx):
         labels = []
 
         for i in idx:
             labels += [self.get_label(i)]
-            if i == stop:
-                break
 
         return labels
 
 
 def get_char_vocab(filename, lower=True):
-    vocab = Vocab(filename, data=[Constants.EOP_CHAR, Constants.EOL_CHAR, Constants.PAD_CHAR, Constants.UNK_CHAR],
+    vocab = Vocab(filename, data=[Constants.SOP_CHAR,
+                                  Constants.EOP_CHAR,
+                                  Constants.EOL_CHAR,
+                                  Constants.PAD_CHAR,
+                                  Constants.UNK_CHAR],
                   lower=lower)
     return vocab

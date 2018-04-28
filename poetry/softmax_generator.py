@@ -1,21 +1,22 @@
-import torch.autograd.variable as Var
+import torch
+from torch.autograd import Variable as Var
 from numpy.random import RandomState
 
 
-class SoftmaxGenerator():
-    def __init__(self, model, start_symbol, end_symbol):
+class SoftmaxGenerator:
+    def __init__(self, model, start_idx, end_idx):
         self.model = model
-        self.start_symbol = start_symbol
-        self.end_symbol = end_symbol
+        self.start_idx = start_idx
+        self.end_idx = end_idx
 
-    def generate(self, random_seed = None):
-        curr_input = [self.start_symbol]
+    def generate(self, random_seed=None):
+        curr_input = [self.start_idx]
         curr_output = None
         rng = RandomState(random_seed)
         result = []
 
-        while curr_output != self.end_symbol:
-            distribution = self.model(Var(curr_input, requires_grad=False))
+        while curr_output != self.end_idx:
+            distribution = self.model(curr_input)
 
             # transfrom to cumulative distribution and move to numpy array
             cum_distribution = distribution.cumsum(0).data.numpy()

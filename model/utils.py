@@ -47,8 +47,16 @@ def from_list(ls, cuda, tensor_class):
         tensor = tensor.cuda()
     return tensor
 
+
 def device_map_location(cuda):
     if cuda:
         return lambda storage, loc: storage.cuda()
     else:
         return lambda storage, loc: storage
+
+
+def from_list(ls, cuda, tensor):
+    tensor = tensor(ls)
+    if cuda:
+        tensor = tensor.cuda()
+    return tensor

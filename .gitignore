@@ -1,3 +1,6 @@
 data/
 .cache
 *.pyc
+results/
+connect*
+rsync*
