@@ -28,18 +28,21 @@ class Trainer(object):
 
         train_logloss, validation_logloss = 10000, 10000
         for epoch in range(max_epoch):
-            train_logloss = self.train(train_data, epoch)
-            train_logloss_perf.append(train_logloss)
-            logging.info('Epoch {} training finished, loss: {}.'.format(epoch+1, train_logloss))
-
-            epoch_dir = os.path.join(results_dir, str(epoch+1))
+            # prepare
+            epoch_dir = os.path.join(results_dir, str(epoch + 1))
             if os.path.exists(epoch_dir):
                 shutil.rmtree(epoch_dir)
             os.mkdir(epoch_dir)
+
+            # training
+            train_logloss = self.train(train_data, epoch)
+            train_logloss_perf.append(train_logloss)
+            logging.info('Epoch {} training finished, loss: {}.'.format(epoch+1, train_logloss))
             model_path = os.path.join(epoch_dir, 'model.pth')
             logging.info('Saving model at {}.'.format(model_path))
             torch.save(self.model, model_path)
 
+            # validation
             validation_logloss = self.validate(dev_data, epoch)
             logging.info('Epoch {} validation finished, logloss: {}.'.format(
                 epoch + 1, validation_logloss))
@@ -84,11 +87,11 @@ class Trainer(object):
 
             loss = self.model.forward_train(X, y)
 
-            total_loss += loss.data[0]
+            total_loss += loss.item()
             loss.backward()
             self.optimizer.step()
             self.optimizer.zero_grad()
-            logging.debug('Batch {}, loss {}'.format(i+1, loss[0]))
+            logging.debug('Batch {}, loss {}'.format(i+1, loss.item()))
 
         return total_loss/len(dataset)
 
@@ -109,8 +112,8 @@ class Trainer(object):
 
             X, y = Var(X, requires_grad=False), Var(y, requires_grad=False)
             loss = self.model.forward_train(X, y)
-            total_loss += loss.data[0]
-            logging.debug('Validation batch {}, loss {}'.format(i, loss[0]))
+            total_loss += loss.item()
+            logging.debug('Validation batch {}, loss {}'.format(i, loss.item()))
 
         total_loss /= len(dataset)
 

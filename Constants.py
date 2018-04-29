@@ -13,10 +13,9 @@ PAD_CHAR = '\\'
 UNK_CHAR = '^'
 
 
-def preprocess_poem(poem, max_length):
+def preprocess_poem(poem):
     # start char, poem with replaced line breaks, end char, padding
-    poem = SOP_CHAR + poem.replace('\n', EOL_CHAR) + EOP_CHAR + ''.join(
-        [PAD_CHAR] * (max_length - len(poem) - 1))
+    poem = SOP_CHAR + poem.replace('\n', EOL_CHAR) + EOP_CHAR
     return poem
 
 

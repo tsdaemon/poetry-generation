@@ -2,6 +2,7 @@ import logging
 import os
 import random
 import sys
+import shutil
 
 import torch
 import torch.optim as optim
@@ -14,6 +15,7 @@ from trainer import Trainer
 from utils.general import init_logging
 from poetry.softmax_generator import SoftmaxGenerator
 import Constants
+
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -28,9 +30,10 @@ if __name__ == '__main__':
         torch.cuda.manual_seed(args.random_seed)
         torch.backends.cudnn.benchmark = True
 
-    # prepare dirs
-    if not os.path.exists(args.output_dir):
-        os.makedirs(args.output_dir)
+    # prepare out dir
+    if os.path.exists(args.output_dir):
+        shutil.rmtree(args.output_dir)
+    os.makedirs(args.output_dir)
 
     # start logging
     init_logging(os.path.join(args.output_dir, 'parser.log'))
@@ -60,7 +63,7 @@ if __name__ == '__main__':
 
     # create learner
     optimizer = optim.Adam([p for p in model.parameters() if p.requires_grad], lr=args.lr)
-    generator = SoftmaxGenerator(model, Constants.SOP, Constants.EOP)
+    generator = SoftmaxGenerator(model, Constants.SOP, Constants.EOP, args.decode_max_time_step)
     trainer = Trainer(model, args, optimizer, generator, vocab)
 
     trainer.train_all(train_data, dev_data, args.output_dir)
