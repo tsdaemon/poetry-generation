@@ -15,3 +15,6 @@ class LogSoftmaxDense(nn.Linear):
     def forward_train(self, input):
         o = super().forward(input)
         return self.log_softmax(o)
+
+    def forward_q(self, input):
+        return super().forward(input)

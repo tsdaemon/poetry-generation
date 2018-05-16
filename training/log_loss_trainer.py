@@ -12,7 +12,7 @@ import Constants
 from torch.autograd import Variable as Var
 
 
-class Trainer(object):
+class LogLossTrainer(object):
     def __init__(self, model, config, optimizer, generator, vocab):
         self.config = config
         self.model = model
@@ -50,16 +50,15 @@ class Trainer(object):
 
             self.generate(epoch, epoch_dir)
 
-            if validation_logloss < 10:
-                if len(val_logloss_perf) == 0 or validation_logloss > np.array(val_logloss_perf).max():
-                    patience_counter = 0
-                    logging.info('Found best model on epoch {}'.format(epoch+1))
-                else:
-                    patience_counter += 1
-                    logging.info('Hitting patience_counter: {}'.format(patience_counter))
-                    if patience_counter >= self.config.train_patience:
-                        logging.info('Early Stop!')
-                        break
+            if validation_logloss <= np.array(val_logloss_perf).min():
+                patience_counter = 0
+                logging.info('Found best model on epoch {}'.format(epoch + 1))
+            else:
+                patience_counter += 1
+                logging.info('Hitting patience_counter: {}'.format(patience_counter))
+                if patience_counter >= self.config.train_patience:
+                    logging.info('Early Stop!')
+                    break
 
         report_result = {
             "Train loss": train_logloss,

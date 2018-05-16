@@ -25,9 +25,17 @@ parser.add_argument('-lr', default=0.001, type=float)
 parser.add_argument('-cuda', dest='cuda', action='store_true')
 parser.add_argument('-no_cuda', dest='cuda', action='store_false')
 
+# q learning
+parser.add_argument('-max_q_epoch', default=100, type=int)
+parser.add_argument('-train_q_patience', default=10, type=int)
+parser.add_argument('-number_of_plays', default=100, type=int)
+parser.add_argument('-replay_capacity', default=200, type=int)
+parser.add_argument('-q_batch_size', default=20, type=int)
+parser.add_argument('-q_train_batches', default=5, type=int)
+
 # decoding
 parser.add_argument('-decode_max_time_step', default=1000, type=int)
 
 # input
-parser.add_argument('-example_length', default=100, type=int)
+parser.add_argument('-max_poem_length', default=1500, type=int)
 parser.add_argument('-min_char_freq', default=10, type=int)

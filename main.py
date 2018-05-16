@@ -11,7 +11,7 @@ from config import parser
 from containers.vocab import get_char_vocab
 from model.chargen import CharGen
 from model.utils import device_map_location
-from trainer import Trainer
+from training.log_loss_trainer import LogLossTrainer
 from utils.general import init_logging
 from poetry.softmax_generator import SoftmaxGenerator
 import Constants
@@ -63,7 +63,7 @@ if __name__ == '__main__':
 
     # create learner
     optimizer = optim.Adam([p for p in model.parameters() if p.requires_grad], lr=args.lr)
-    generator = SoftmaxGenerator(model, Constants.SOP, Constants.EOP, args.decode_max_time_step)
-    trainer = Trainer(model, args, optimizer, generator, vocab)
+    generator = SoftmaxGenerator(model, Constants.SOP, Constants.EOP, args.decode_max_time_step, len(vocab))
+    trainer = LogLossTrainer(model, args, optimizer, generator, vocab)
 
     trainer.train_all(train_data, dev_data, args.output_dir)

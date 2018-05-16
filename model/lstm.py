@@ -47,7 +47,7 @@ class LSTM(nn.Module):
         h = o * F.tanh(c)
         return h, c
 
-    def forward(self, X):
+    def forward(self, X, h_init=None, c_init=None):
         batch_size = X.size()[0]
         length = X.size()[1]
         # (4, batch_size, input_dim)
@@ -60,8 +60,15 @@ class LSTM(nn.Module):
         Xc = self.W_c(X * dr_X[2])
         Xo = self.W_o(X * dr_X[3])
 
-        h = init_var(batch_size, self.output_dim, scale=0.1, cuda=X.is_cuda, training=self.training)
-        c = init_var(batch_size, self.output_dim, scale=0.1, cuda=X.is_cuda, training=self.training)
+        if h_init is None:
+            h = init_var(batch_size, self.output_dim, scale=0.1, cuda=X.is_cuda, training=self.training)
+        else:
+            h = h_init
+        if c_init is None:
+            c = init_var(batch_size, self.output_dim, scale=0.1, cuda=X.is_cuda, training=self.training)
+        else:
+            c = c_init
+
         h_hist = []
         c_hist = []
         for t in range(length):

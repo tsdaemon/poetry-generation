@@ -8,17 +8,10 @@ from config import parser
 from containers.vocab import get_char_vocab
 from containers.dataset import Dataset
 import Constants
-from utils.general import get_batches
 
 
-def extract_by_length(poem, length):
-    poem = Constants.preprocess_poem(poem)
-    batches = list(map(lambda x: ''.join(x), get_batches(poem, length)))
-    return batches
-
-
-def extract_examples(contents, length):
-    return [batch for poem in contents.split('\n\n\n') for batch in extract_by_length(poem, length)]
+def extract_poems(contents, length):
+    return [Constants.preprocess_poem(poem)[:length] for poem in contents.split('\n\n\n')]
 
 
 def extract_char_vocab(contents, vocabfile, min_freq):
@@ -39,17 +32,17 @@ def extract_char_vocab(contents, vocabfile, min_freq):
     return vocab, set(contents) - set(chars)
 
 
-def generate_out(out_filename, out_char_filename, examples, vocab, example_length):
+def generate_out(out_filename, out_char_filename, poems, vocab, max_poem_length):
     with open(out_filename, 'w') as f:
         with open(out_char_filename, 'w') as f2:
-            for example in examples:
+            for poem in poems:
 
-                assert len(example) <= example_length
-                example += ''.join([Constants.PAD_CHAR]*(example_length-len(example)))
-                assert len(example) == example_length
-                f2.write(example + '\n')
+                assert len(poem) <= max_poem_length
+                poem += ''.join([Constants.PAD_CHAR]*(max_poem_length-len(poem)))
+                assert len(poem) == max_poem_length
+                f2.write(poem + '\n')
 
-                idx = vocab.convert_to_idx(example, Constants.UNK_CHAR)
+                idx = vocab.convert_to_idx(poem, Constants.UNK_CHAR)
                 s = ' '.join(map(str, idx)) + '\n'
                 f.write(s)
 
@@ -73,20 +66,20 @@ if __name__ == '__main__':
     vocab, excluded_symbols = extract_char_vocab(contents, vocabfile, args.min_char_freq)
     print('Extracted vocabulary, length: {}, excluded symbols: {}'.format(len(vocab), excluded_symbols))
 
-    examples = extract_examples(contents, args.example_length)
-    lengths = list(map(len, examples))
+    poems = extract_poems(contents, args.max_poem_length)
+    lengths = list(map(len, poems))
     print(
         'Extracted {} examples, min length: {}, max length: {}, median length: {}, quantiles: {}'.format(
-            len(examples),
+            len(poems),
             min(lengths),
             max(lengths),
             np.median(lengths),
             np.percentile(lengths, [10, 20, 30])))
 
     # split train validation 80:20
-    train_length = int(len(examples) * 0.8)
-    poems_train = examples[:train_length]
-    poems_validation = examples[train_length:]
+    train_length = int(len(poems) * 0.8)
+    poems_train = poems[:train_length]
+    poems_validation = poems[train_length:]
 
     to_generate = [(poems_train, 'nyg.train.out', 'nyg.train'),
                    (poems_validation, 'nyg.validation.out', 'nyg.validation')]
@@ -94,7 +87,7 @@ if __name__ == '__main__':
     for poems, out_filename, dataset_filename in to_generate:
         out_idx_filename = os.path.join(poetry_folder, out_filename)
         out_char_filename = os.path.join(poetry_folder, out_filename + '.char')
-        generate_out(out_idx_filename, out_char_filename, poems, vocab, args.example_length)
+        generate_out(out_idx_filename, out_char_filename, poems, vocab, args.max_poem_length)
 
         dataset = Dataset(out_idx_filename)
         dataset_filename = os.path.join(poetry_folder, dataset_filename)
