@@ -60,3 +60,9 @@ def from_list(ls, cuda, tensor):
     if cuda:
         tensor = tensor.cuda()
     return tensor
+
+
+def cudafication(tensor, cuda):
+    if cuda:
+        tensor = tensor.cuda()
+    return tensor

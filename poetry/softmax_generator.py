@@ -26,10 +26,8 @@ class SoftmaxGenerator:
             # transfrom to cumulative distribution and move to numpy array
             cum_distribution = np.cumsum(distribution)
             rnd_number = rng.uniform(0, 1.0)
-            for i, cum_proba in enumerate(cum_distribution):
-                if rnd_number < cum_proba:
-                    curr_output = i
-                    break
+            curr_output = np.argmax(rnd_number < cum_distribution)
+
             result.append(curr_output)
             curr_input = [curr_output]
             step += 1
@@ -38,25 +36,27 @@ class SoftmaxGenerator:
 
     def generate_q(self, epsilon):
         curr_input = [self.start_idx]
-        curr_idx = None
+        curr_output = None
+        c_init = None
+        h_init = None
         results = []
         step = 0
-        while curr_idx != self.end_idx and step < self.max_time_step:
-            curr_output, distribution = self.model.forward_q(curr_input)
+        while curr_output != self.end_idx and step < self.max_time_step:
+            q, distribution, h_init, c_init = self.model.forward_q(curr_input, h_init, c_init)
 
-            random_char = random.random() < epsilon
-            if random_char:
-                curr_idx = random.randint(self.vocab_size)
-            else:
-                cum_distribution = np.cumsum(distribution)
-                rnd_number = np.random.uniform(0, 1.0)
-                for i, cum_proba in enumerate(cum_distribution):
-                    if rnd_number < cum_proba:
-                        curr_idx = i
-                        break
+            # no fucking epsilon
+            # random_char = random.random() < epsilon
+            #
+            # if random_char:
+            #     curr_output = np.random.randint(0, self.vocab_size)
+            # else:
 
-            results.append(curr_input, curr_output, curr_idx)
-            curr_input = [curr_idx]
+            cum_distribution = np.cumsum(distribution)
+            rnd_number = np.random.uniform(0, 1.0)
+            curr_output = np.argmax(rnd_number < cum_distribution)
+
+            results.append([curr_input[0], curr_output])
+            curr_input = [curr_output]
             step += 1
 
         return results

@@ -50,16 +50,18 @@ class LSTM(nn.Module):
     def forward(self, X, h_init=None, c_init=None):
         batch_size = X.size()[0]
         length = X.size()[1]
+
+        # dropout
         # (4, batch_size, input_dim)
         dr_X = dropout_matrix(4, batch_size, 1, self.input_dim, train=self.training, cuda=X.is_cuda, p=self.dropout)
         # (4, batch_size, output_dim)
         dr_H = dropout_matrix(4, batch_size, self.output_dim, train=self.training, cuda=X.is_cuda, p=self.dropout)
-
         Xi = self.W_i(X * dr_X[0])
         Xf = self.W_f(X * dr_X[1])
         Xc = self.W_c(X * dr_X[2])
         Xo = self.W_o(X * dr_X[3])
 
+        # variational init
         if h_init is None:
             h = init_var(batch_size, self.output_dim, scale=0.1, cuda=X.is_cuda, training=self.training)
         else:

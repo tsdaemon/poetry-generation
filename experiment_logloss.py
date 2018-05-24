@@ -3,11 +3,11 @@ import subprocess
 
 if __name__ == '__main__':
     # processes = []
-    layers = range(1, 4)
+    layers = range(3, 4)
     for layer in layers:
         subprocess.run(
             "python3 main.py " +
-            "-cuda " +
+            "-cuda -max_epoch 300 " +
             "-layers {} ".format(layer) +
             "-output_dir ./results/layers/{}".format(layer), shell=True)
 

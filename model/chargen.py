@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 from torch.autograd import Variable as Var
+import torch.nn.functional as F
 
 import Constants
 from model.lstm import LSTM
@@ -140,12 +141,18 @@ class CharGen(nn.Module):
 
         return loss
 
-    def forward_train_q(self, X, q):
+    def forward_train_q(self, X, q, idx):
+        # (batch_num, max_poem_length, vocab_length)
         h = self._forward_train(X)
 
         # (batch_num, max_poem_length, vocab_length)
-        q_hat = self.logsoftmax_dense.forward_q(h)
+        q_tensor = self.logsoftmax_dense.forward_q(h)
 
-        loss = torch.sqrt(torch.mean((q - q_hat).pow(2)))
+        # collect q values for selected indexes
+        # (batch_num, max_poem_length)
+        q_hat = q_tensor.gather(2, idx.unsqueeze(2)).squeeze(2)
+
+        # Compute Huber loss
+        loss = F.smooth_l1_loss(q_hat, q)
 
         return loss

@@ -3,6 +3,7 @@ import os
 import random
 import sys
 import shutil
+import pandas as pd
 
 import torch
 import torch.optim as optim
@@ -12,9 +13,28 @@ from containers.vocab import get_char_vocab
 from model.chargen import CharGen
 from model.utils import device_map_location
 from training.log_loss_trainer import LogLossTrainer
+from training.q_trainer import QTrainer
 from utils.general import init_logging
 from poetry.softmax_generator import SoftmaxGenerator
+from poetry.scorers import MultyScorer
 import Constants
+
+
+def q(model, args, optimizer, generator, vocab):
+    # read words from accents
+    accents = pd.read_csv(args.path_to_accents_csv)
+    words = list(accents['Word'])
+
+    # create scorer
+    scorer = MultyScorer(words=words)
+
+    trainer = QTrainer(model, args, optimizer, generator, vocab, scorer)
+    trainer.train_all(args.output_dir)
+
+
+def log_loss(model, args, optimizer, generator, vocab):
+    trainer = LogLossTrainer(model, args, optimizer, generator, vocab)
+    trainer.train_all(train_data, dev_data, args.output_dir)
 
 
 if __name__ == '__main__':
@@ -63,7 +83,9 @@ if __name__ == '__main__':
 
     # create learner
     optimizer = optim.Adam([p for p in model.parameters() if p.requires_grad], lr=args.lr)
-    generator = SoftmaxGenerator(model, Constants.SOP, Constants.EOP, args.decode_max_time_step, len(vocab))
-    trainer = LogLossTrainer(model, args, optimizer, generator, vocab)
+    generator = SoftmaxGenerator(model, Constants.SOP, Constants.EOP, len(vocab), args.decode_max_time_step)
 
-    trainer.train_all(train_data, dev_data, args.output_dir)
+    if args.mode == 'log_loss':
+        log_loss(model, args, optimizer, generator, vocab)
+    elif args.mode == 'q':
+        q(model, args, optimizer, generator, vocab)
