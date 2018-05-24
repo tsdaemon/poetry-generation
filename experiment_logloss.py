@@ -3,7 +3,7 @@ import subprocess
 
 if __name__ == '__main__':
     # processes = []
-    layers = range(3, 4)
+    layers = range(2, 4)
     for layer in layers:
         subprocess.run(
             "python3 main.py " +

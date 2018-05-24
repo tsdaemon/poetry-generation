@@ -32,6 +32,7 @@ class CharGen(nn.Module):
 
         self.logsoftmax_dense = LogSoftmaxDense(config.hidden_dim, vocab_length)
 
+        self.q_dense = nn.Linear(vocab_length, vocab_length)
         self.softmax = nn.Softmax(dim=-1)
 
         self.is_cuda = config.cuda
@@ -99,7 +100,10 @@ class CharGen(nn.Module):
         h, h_hist, c_hist = self._forward(X, h_init, c_init)
 
         # (vocab_length)
-        q = self.logsoftmax_dense.forward_q(h)
+        pre_q = self.logsoftmax_dense.forward_q(h)
+
+        # (vocab_length)
+        q = self.q_dense(pre_q)
 
         # convert back to numpy
         if self.is_cuda:
@@ -146,7 +150,10 @@ class CharGen(nn.Module):
         h = self._forward_train(X)
 
         # (batch_num, max_poem_length, vocab_length)
-        q_tensor = self.logsoftmax_dense.forward_q(h)
+        pre_q_tensor = self.logsoftmax_dense.forward_q(h)
+
+        # (batch_num, max_poem_length, vocab_length)
+        q_tensor = self.q_dense(pre_q_tensor)
 
         # collect q values for selected indexes
         # (batch_num, max_poem_length)
